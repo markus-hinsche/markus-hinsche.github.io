@@ -60,16 +60,50 @@ https://markus-hinsche.github.io/tut-productive-ml/
 
 # whoami
 
-- Machine Learning Consultant ([Natural Vision](http://naturalvision.de))
-  * Development and training (Python and Machine Learning)
-- Clients: Otto Group, IKEA, Luxottica, Toptal
+- Machine Learning Freelancer ([website](http://markushinsche.de), [github](https://github.com/markus-hinsche/))
+  * Hands-on Implementation and Consoluting (Machine Learning)
+- Projects: Welthungerhilfe (computer vision), The Martec (NLP), ...
 - Strengths:
-  * Python (since 2000)
-  * Open Source (since 2003)
-  * Deep Learning (since 2014)
-  * Software development best practices (testing, pairing, tutorials)
+  * Python (since 2009)
+  * Deep Learning (since 2018)
+  * Software development best practices (testing, pairing, clean code)
+  * Mentoring
 
 ---
+
+class: center, middle
+
+# Why ML in production?
+
+### "87% of data science projects never make it to production"
+
+[https://stackoverflow.blog/2020/10/12/how-to-put-machine-learning-models-into-production/]
+
+### "Model deployment is more and more expected from a Data Scientist"
+
+[Jose]
+
+???
+
+Maybe on demo day, you want to deploy some project.
+Maybe you can learn how to do this.
+
+---
+
+# What is the difference?
+
+* code for researching models
+* code for deploying models into production
+
+???
+
+clean code: consistent style, tested, peer reviewed
+
+Collaboration
+- git/github in real life
+- work in codebase with other people
+
+environments: dev, staging, prod
 
 ---
 
@@ -524,8 +558,6 @@ if __name__ == '__main__':
 
 ---
 
----
-
 # Skorch: Installation
 
 [Skorch](https://skorch.readthedocs.io/) is a scikit-learn compatible
@@ -674,38 +706,6 @@ use of PyTorch models in the context of scikit-learn.
 
 ---
 
-# Skorch: NeuralNetClassifier and boilerplate
-
-The boilerplate that `NeuralNetClassifier` implements includes a
-PyTorch training loop, which typically looks like this:
-
-```python
-for epoch in range(10):
-    net.train()
-    for inputs, labels in train_loader:
-        optimizer.zero_grad()
-        with torch.set_grad_enabled(True):
-            outputs = net(inputs)
-            loss = criterion(outputs, labels)
-            loss.backward()
-            optimizer.step()
-```
-
-Similarly, recording of metrics in PyTorch:
-
-```python
-train_losses = []
-for epoch in range(10):
-    running_loss = 0.0
-    for inputs, label in train_loader:
-        # ...
-        running_loss += loss.item() * inputs.size(0)
-    epoch_loss = running_loss / len(train_loader.dataset)
-    train_losses.append(epoch_loss)
-```
-
----
-
 # PyTorch: nn.Module
 
 Our PyTorch `Module` contains the definition of our neural network.
@@ -814,8 +814,6 @@ NeuralNetClassifier(
     ],
 )
 ```
-
----
 
 ---
 
@@ -972,11 +970,6 @@ example script such that it uses your group's distributed cluster.
 To use your cluster's central scheduler, you must modify the line in
 `dd.py` that says "*# use distributed scheduler*."
 
-Running the example repeatedly across computers may yield different
-results for the means.  Why is that?
-
----
-
 ---
 
 # Determine wine quality with skorch
@@ -1109,8 +1102,6 @@ as a continuous value between 0 and 10.
 
 ---
 
----
-
 # Skorch: Sentiment analysis with RNNs
 
 Our last skorch example demonstrates the use of RNNs to do sentiment
@@ -1202,8 +1193,6 @@ b      condition  down     j         next      return   tbreak   w
 break  cont       enable   jump      p         retval   u        whatis
 bt     continue   exit     l         pp        run      unalias  where
 ```
-
----
 
 ---
 
@@ -1349,7 +1338,7 @@ Next, we'll check out this repo from Github and create a virtualenv
 inside of it:
 
 ```bash
-$ git clone https://github.com/naturalvision/tut-productive-ml.git
+$ git clone https://github.com/markus-hinsche/tut-productive-ml.git
 ...
 $ python3 -m venv tut-productive-ml
 $ cd tut-productive-ml
@@ -1405,8 +1394,6 @@ $ sudo iptables -A PREROUTING -t nat -p tcp --dport 80 -j REDIRECT --to-ports 80
 
 ---
 
----
-
 # But is it fast? Use `ab` to find out!
 
 A classic tool for benchmarking websites is `ab`, the Apache HTTP
@@ -1445,7 +1432,7 @@ Gunicorn prints out the process id (PID) of its worker when it starts
 up.  It looks something like this:
 
 ```
-[2019-02-18 16:12:05 +0000] [5883] [INFO] Booting worker with pid: 5883
+[2020-11-18 16:12:05 +0000] [5883] [INFO] Booting worker with pid: 5883
 ```
 
 We can now use `py-spy` to attach to the Gunicorn worker and see what
@@ -1586,238 +1573,6 @@ service should it ever crash with a Python exception or the like.
 
 ---
 
-# Set up secure communication to our web service (HTTPS)
-
-Here's what we'll do to secure our web service with TLS/HTTPS:
-
-- Use [certbot](https://certbot.eff.org/)/[Let's
-  Encrypt](https://letsencrypt.org/) to obtain an HTTPS certificate
-
-- Use the [NGINX web server](https://www.nginx.com/) to handle
-  encryption and forward to Gunicorn
-
-- Use [Docker](https://www.docker.com/) and
-  [docker-compose](https://docs.docker.com/compose/) to wire it all
-  together
-
----
-
-# Install Docker and docker-compose
-
-Installing Docker involves adding Docker's proprietary package
-repository to our Ubuntu 18.04 system and installing the `docker-ce`
-package from there.  Here's the steps:
-
-```bash
-$ sudo apt install apt-transport-https ca-certificates curl software-properties-common
-$ curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo apt-key add -
-$ sudo add-apt-repository "deb [arch=amd64] https://download.docker.com/linux/ubuntu bionic stable"
-$ sudo apt update
-$ sudo apt install docker-ce
-```
-
-To install `docker-compose`, make sure you're inside your virtual
-environment and run this:
-
-```bash
-$ source bin/activate
-$ pip install docker-compose
-```
-
----
-
-# Setting up a domain
-
-Before we can ask *Let's Encrypt* for an SSL/TLS certificate, we'll
-have to set up a domain for our EC2 instance.  If you have your own
-domain, chances are that you can easily set up a subdomain that points
-to the EC2 instance.  Here's a [guide on how to set up a subdomain
-with
-Namecheap](https://www.namecheap.com/support/knowledgebase/article.aspx/9776/2237/how-to-create-a-subdomain-for-my-domain/).
-
-Here's the *A Record* that I set up such that
-`dsr2019test.naturalvision.de` now points to the IP of my EC2
-instance, which is `35.157.232.182`:
-
-![:scale 100%](./resources/dns-namecheap.png)
-
-After this, we should be able to access our web service using the new
-name: http://dsr2019test.naturalvision.de/alive
-
----
-
-# Prepare config files before we obtain the certificate
-
-Open up `step8/init-letsencrypt.sh`.  At the top of the file, you'll
-find the definition of domains.  Change this to match the subdomain
-that you just set up:
-
-```bash
-domains=(mysubdomain.naturalvision.de)
-```
-
-Similarly, replace all occurrences of `mysubdomain.naturalvision.de`
-with your actual domain name inside of `step8/data/nginx/app.conf`.
-
-Remember the `iptables` rule that we used to forward ports?  We need
-to get rid of it, because we'll have NGINX serve port 80:
-
-```bash
-$ sudo iptables -L -t nat
-...
-$ sudo iptables -D PREROUTING -t nat -p tcp --dport 80 -j REDIRECT --to-ports 8080
-$ sudo iptables -L -t nat
-...
-```
-
----
-
-# Obtain the certificate from *Let's Encrypt*
-
-Now we're ready to run the `init-letsencrypt.sh` script.  You have to
-do this as the root user and while inside the virtual environment:
-
-```bash
-$ sudo su  # become superuser
-$ source bin/activate  # activate virtualenv
-$ cd step8
-$ ./init-letsencrypt.sh
-```
-
-(Make sure you log out as root whenever you no longer need it.)
-
-If successful, this will print something like this:
-
-```
- - Congratulations! Your certificate and chain have been saved at:
-   /etc/letsencrypt/live/mysubdomain.naturalvision.de/fullchain.pem
-   Your key file has been saved at:
-   /etc/letsencrypt/live/mysubdomain.naturalvision.de/privkey.pem
-   Your cert will expire on 2019-05-20. To obtain a new or tweaked
-   version of this certificate in the future, simply run certbot
-   again. To non-interactively renew *all* of your certificates, run
-   "certbot renew"
- - Your account credentials have been saved in your Certbot
-   configuration directory at /etc/letsencrypt. You should make a
-   secure backup of this folder now. This configuration directory will
-   also contain certificates and private keys obtained by Certbot so
-   making regular backups of this folder is ideal.
-```
-
----
-
-# It just works, but how?
-
-When open the following page in your browser (use your own
-subdomain!), note that your browser will show a secure connection now:
-https://mysubdomain.naturalvision.de/predict?sepal%20length=6.3&sepal%20width=2.5&petal%20length=4.9&petal%20width=1.5
-
-Let's have a look at the individual components and pieces of
-configuration that made this work.
-
-`docker-compose` is a tool that's maybe similar to Supervisor, but
-instead of managing processes on your host, it manages Docker
-containers.  Run `sudo docker-compose ps` from within `step8` to see
-what containers it's running.
-
-`step8/docker-compose.yml` is set up to run an `nginx` container and a
-`certbot` container.  Note how NGINX is set up to handle requests to
-ports 80 and 443.  The NGINX configuration itself lives in
-`step8/data/nginx/app.conf`, and it sets up NGINX to act as a proxy
-for our application (`app_server`).
-
-`init-letsencrypt.sh` is a shell script that uses the `certbot`
-container to obtain the certificate and save it.
-
----
-
-# An update to our Supervisor configuration
-
-Take a look at `step8/supervisor.conf`.  In addition to our
-`program:webservice` section, we now also have
-`program:docker-compose`:
-
-```ini
-[program:docker-compose]
-command=/home/ubuntu/tut-productive-ml/bin/docker-compose up
-directory=/home/ubuntu/tut-productive-ml/step8/
-```
-
-Let's link this file into the right place such that Supervisor picks
-it up:
-
-```bash
-$ sudo rm /etc/supervisor/conf.d/supervisor.conf
-$ sudo ln -s ~/tut-productive-ml/step8/supervisor.conf /etc/supervisor/conf.d/
-```
-
-We shut down the running instance of Supervisor and `docker-compose`
-before we start up Supervisor again (as root and inside the active
-virtual environment):
-
-```bash
-$ cd step8
-$ docker-compose down
-$ /etc/init.d/supervisor stop
-$ /etc/init.d/supervisor start
-```
-
----
-
-# Require authentication for our web service
-
-Now that our connection is secure from eavesdropping, how can we
-restrict access such that only people with a valid username and
-password can use it?
-
-Palladium allows us to add decorators to the existing web hooks.  One
-thing we can do with these decorators is to require authentication.
-Flask's website has [a snippet that implements HTTP Basic Auth as a
-decorator](http://flask.pocoo.org/snippets/8/).  You can find this
-snippet in `step8/mybasicauth.py`.
-
-What's left is to hook up this decorator with our Palladium web
-service.  Add this piece of configuration to
-`step8/palladium-config.py`:
-
-```python
-    'predict_decorators': [
-        'mybasicauth.requires_auth',
-    ],
-
-    'alive_decorators': [
-        'mybasicauth.requires_auth',
-    ],
-```
-
----
-
-# Programmatic use of the web service
-
-Our prediction web service will typically be called from another
-program, be it a smartphone app or a website.  This is how you would
-use the final web service from Python:
-
-```python
-import requests
-
-data = [
-    {'sepal length': 6.3, 'sepal width': 2.5,
-     'petal length': 4.9, 'petal width': 1.5},
-    ]
-result = requests.get(
-    'https://mysubdomain.naturalvision.de/predict',
-    json=data,
-    auth=('myuser', 'mysecret'),
-    ).json()
-
-print(result)
-# result is a Python dictionary:
-# {'metadata': {'status': 'OK', 'error_code': 0}, 'result': ['Iris-virginica']}
-```
-
----
-
 # End
 
 - https://github.com/ottogroup/palladium
@@ -1826,10 +1581,12 @@ print(result)
 - https://github.com/dask/dask
 
 
-- daniel@naturalvision.de
-- [linkedin.com/in/nouri](https://www.linkedin.com/in/nouri)
-- [twitter.com/dnouri](https://twitter.com/dnouri)
-- [naturalvision.de](http://naturalvision.de)
+- mail@markushinsche.de
+- [linkedin.com/in/markushinsche](https://linkedin.com/in/markushinsche)
+- [twitter.com/markus_hinsche](https://twitter.com/markus_hinsche)
+- [markushinsche.de](https://markushinsche.de)
+
+Thanks to Daniel Nouri for initial versions of the slide deck
 
 ## Images
 
