@@ -175,6 +175,7 @@ hyperparameters using *Bayesian optimization*.
 ```python
 from sklearn import svm, datasets
 from sklearn.model_selection import GridSearchCV
+import pandas as pd
 iris = datasets.load_iris()
 parameters = {'kernel':('linear', 'rbf'), 'C':[0.1, 1, 10, 100, 1000]}
 svc = svm.SVC()
@@ -403,7 +404,7 @@ Successfully installed ...
 $ pip install gunicorn
 $ cd step3
 $ # TODO train the model
-$ gunicorn deploy_iris:app -b 0.0.0.0:8080
+$ gunicorn deploy_iris:app -k uvicorn.workers.UvicornWorker -b 0.0.0.0:8080
 ```
 
 Try to navigate your browser to this URL, and you'll notice that it's
@@ -541,7 +542,7 @@ On the server, create this supervisor config file and save it as
 
 ```ini
 [program:webservice]
-command=/home/ubuntu/tut-productive-ml/bin/gunicorn deploy_iris.wsgi:app -b 0.0.0.0:8080
+command=/home/ubuntu/tut-productive-ml/bin/gunicorn -k uvicorn.workers.UvicornWorker deploy_iris.wsgi:app -b 0.0.0.0:8080
 directory=/home/ubuntu/tut-productive-ml/step3/
 user=ubuntu
 ```
@@ -631,13 +632,13 @@ with
 Namecheap](https://www.namecheap.com/support/knowledgebase/article.aspx/9776/2237/how-to-create-a-subdomain-for-my-domain/).
 
 Here's the *A Record* that I set up such that
-`dsr2020test.markushinsche.de` now points to the IP of my EC2
+`dsr2021test.markushinsche.de` now points to the IP of my EC2
 instance, which is `35.157.232.182`:
 
 ![:scale 100%](./resources/dns-namecheap.png)
 
 After this, we should be able to access our web service using the new
-name: http://dsr2020test.markushinsche.de/alive
+name: http://dsr2021test.markushinsche.de/alive
 
 ---
 
@@ -796,9 +797,7 @@ print(result)
 # End
 
 - https://github.com/scikit-learn/scikit-learn
-- https://github.com/skorch-dev/skorch
-- https://github.com/dask/dask
-
+- https://keras.io/
 
 - mail@markushinsche.de
 - [linkedin.com/in/markushinsche](https://linkedin.com/in/markushinsche)
