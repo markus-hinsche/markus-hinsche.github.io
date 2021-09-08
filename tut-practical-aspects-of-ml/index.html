@@ -400,10 +400,12 @@ Successfully installed ...
 
 # Use Gunicorn to serve the web service
 
+Before starting the web service, we need to have a trained model.
+
+Exercise: How can we get this trained model onto our server?
+
 ```bash
-$ pip install gunicorn
-$ cd step3
-$ # TODO train the model
+$ pip install uvicorn gunicorn
 $ gunicorn deploy_iris:app -k uvicorn.workers.UvicornWorker -b 0.0.0.0:8080
 ```
 
@@ -543,8 +545,9 @@ On the server, create this supervisor config file and save it as
 ```ini
 [program:webservice]
 command=/home/ubuntu/tut-productive-ml/bin/gunicorn -k uvicorn.workers.UvicornWorker deploy_iris.wsgi:app -b 0.0.0.0:8080
-directory=/home/ubuntu/tut-productive-ml/step3/
+directory=/home/ubuntu/tut-productive-ml/
 user=ubuntu
+startsecs=0
 ```
 
 You can find out more about [Supervisor's configuration files in the
