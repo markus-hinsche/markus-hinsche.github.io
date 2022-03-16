@@ -24,7 +24,7 @@ class: center, middle
 
 # Practical Aspects of Machine Learning
 
-Markus Hinsche, Senior ML Engineer, Freelance, datascienceretreat.com 2021
+Markus Hinsche, Senior ML Engineer, Freelance, datascienceretreat.com 2022
 
 ---
 
@@ -135,10 +135,10 @@ first line for column names is missing:
 
 The columns are:
 
-- `sepal length`
-- `sepal width`
-- `petal length`
-- `petal width`
+- `sepallength`
+- `sepalwidth`
+- `petallength`
+- `petalwidth`
 - `species`
 
 ---
@@ -230,7 +230,12 @@ What hyperparameters could we include in the search?
 
 # Solution
 
-`deploy_iris.py`
+```
+pip install -U pip
+pip install -r step1/requirements.txt
+```
+
+Prepare `deploy_iris.py`
 
 `uvicorn deploy_iris:app --reload --log-level=debug`
 
@@ -400,18 +405,15 @@ Successfully installed ...
 
 # Use Gunicorn to serve the web service
 
-Before starting the web service, we need to have a trained model.
-
-Exercise: How can we get this trained model onto our server?
-
 ```bash
-$ pip install uvicorn gunicorn
-$ gunicorn deploy_iris:app -k uvicorn.workers.UvicornWorker -b 0.0.0.0:8080
+$ pip install gunicorn
+$ # TODO make sure you have a trained model
+$ gunicorn step4.deploy_gentle_iris:app -k uvicorn.workers.UvicornWorker -b 0.0.0.0:8080
 ```
 
 Try to navigate your browser to this URL, and you'll notice that it's
 not yet working as expected.  There's no response:
-http://35.157.232.182/predict?sepal%20length=6.3&sepal%20width=2.5&petal%20length=4.9&petal%20width=1.5
+http://35.157.232.182/predict?sepallength=6.3&sepalwidth=2.5&petallength=4.9&petalwidth=1.5
 
 The problem is that we've asked Gunicorn to serve on port 8080, but
 the standard HTTP port which our browser connects to is port 80.  The
@@ -425,25 +427,37 @@ $ sudo iptables -A PREROUTING -t nat -p tcp --dport 80 -j REDIRECT --to-ports 80
 
 ---
 
-# But is it fast? Use `ab` to find out!
+# But is it fast? Use `locust` to find out!
 
-A classic tool for benchmarking websites is `ab`, the Apache HTTP
-server benchmarking tool.  Let's install and run a thousand requests
-against our web service, with 10 requests at a time:
+
+A tool for benchmarking websites is `locust`.
+Let's install and simulate many requests against our web service ⇶
+
+Let's start to profile an app that runs locally
 
 ```bash
-$ sudo apt install apache2-utils
-$ ab -n 1000 -c 10 "http://localhost:8080/predict?sepal%20length=6.3&sepal%20width=2.5&petal%20length=4.9&petal%20width=1.5"
+pip install locust
+locust -f step4/benchmark.py
 ```
 
-In the output, look for something like this:
+Headless mode can be handy, e.g., when profiling our AWS setup:
 
-```
-Requests per second:    250.49 [#/sec] (mean)
+```bash
+locust -f step4/benchmark.py --headless --host http://0.0.0.0:8000 -u 1000 -r 50
 ```
 
-We can serve 250 requests per second.  That's not bad at all.  But
-let's have a closer look at where time is being spent.
+```bash
+locust -f step4/benchmark.py --headless --host http://0.0.0.0:8000 -u 1000 -r 50 --master
+locust -f step4/benchmark.py --worker --master-bind-host=0.0.0.0 --master-bind-port 8089
+```
+
+Ressource: <https://calmcode.io/locust/introduction.html>
+
+---
+
+# Locust output (in headless mode)
+
+![:scale 100%](./resources/locust-benchmark.png)
 
 ---
 
@@ -472,7 +486,7 @@ it's doing:
 ```bash
 $ sudo su
 $ source bin/activate
-$ py-spy top --pid 5883  # replace with the actual Gunicorn PID you just saw
+$ py-spy record --pid 5883  # replace with the actual Gunicorn PID you just saw
 ```
 
 ---
@@ -482,22 +496,27 @@ $ py-spy top --pid 5883  # replace with the actual Gunicorn PID you just saw
 You should see output similar to `top`.  The web server isn't doing
 much right now, but we can send another round of requests to it to see
 what it's doing when it's busy.  In a new terminal window, run another
-10000 requests using `ab` and switch back to the `py-spy` window to
+multiple requests using `locust` and switch back to the `py-spy` window to
 see what's happening.
 
 ```bash
-$ ab -n 10000 -c 10 "http://localhost:8080/predict?sepal%20length=6.3&sepal%20width=2.5&petal%20length=4.9&petal%20width=1.5"
+$ locust -f step4/benchmark.py --headless --host http://0.0.0.0:8080 -u 20 -r 10
 ```
 
-![:scale 100%](./resources/py-spy.png)
+![:scale 100%](./resources/py-spy-flame-graph.png)
 
 ---
 
 # Profiling our web app (3)
 
 
+Alternatively using py-spy's **top** command:
 
-Now run the `ab` test again.  How many requests per second do you get?
+```bash
+$ py-spy top --pid 5883  # replace with the actual Gunicorn PID you just saw
+```
+
+![:scale 100%](./resources/py-spy.png)
 
 ---
 
@@ -514,7 +533,7 @@ Now run the `ab` test again.  How many requests per second do you get?
 
 - Used Gunicorn to serve the FastAPI web service
 
-- Benchmarked (`ab`) and profiled (`py-spy`) our web service
+- Benchmarked (`locust`) and profiled (`py-spy`) our web service
 
 ---
 
@@ -545,9 +564,8 @@ On the server, create this supervisor config file and save it as
 ```ini
 [program:webservice]
 command=/home/ubuntu/tut-productive-ml/bin/gunicorn -k uvicorn.workers.UvicornWorker deploy_iris.wsgi:app -b 0.0.0.0:8080
-directory=/home/ubuntu/tut-productive-ml/
+directory=/home/ubuntu/tut-productive-ml/step3/
 user=ubuntu
-startsecs=0
 ```
 
 You can find out more about [Supervisor's configuration files in the
@@ -692,7 +710,7 @@ If successful, this will print something like this:
    /etc/letsencrypt/live/mysubdomain.markushinsche.de/fullchain.pem
    Your key file has been saved at:
    /etc/letsencrypt/live/mysubdomain.markushinsche.de/privkey.pem
-   Your cert will expire on 2021-05-20. To obtain a new or tweaked
+   Your cert will expire on 2022-05-20. To obtain a new or tweaked
    version of this certificate in the future, simply run certbot
    again. To non-interactively renew *all* of your certificates, run
    "certbot renew"
@@ -709,7 +727,7 @@ If successful, this will print something like this:
 
 When open the following page in your browser (use your own
 subdomain!), note that your browser will show a secure connection now:
-https://mysubdomain.markushinsche.de/predict?sepal%20length=6.3&sepal%20width=2.5&petal%20length=4.9&petal%20width=1.5
+https://mysubdomain.markushinsche.de/predict?sepallength=6.3&sepalwidth=2.5&petallength=4.9&petalwidth=1.5
 
 Let's have a look at the individual components and pieces of
 configuration that made this work.
@@ -781,8 +799,8 @@ use the final web service from Python:
 import requests
 
 data = [
-    {'sepal length': 6.3, 'sepal width': 2.5,
-     'petal length': 4.9, 'petal width': 1.5},
+    {'sepallength': 6.3, 'sepalwidth': 2.5,
+     'petallength': 4.9, 'petalwidth': 1.5},
     ]
 result = requests.get(
     'https://mysubdomain.markushinsche.de/predict',
