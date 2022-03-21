@@ -446,11 +446,6 @@ Headless mode can be handy, e.g., when profiling our AWS setup:
 locust -f step4/benchmark.py --headless --host http://0.0.0.0:8000 -u 1000 -r 50
 ```
 
-```bash
-locust -f step4/benchmark.py --headless --host http://0.0.0.0:8000 -u 1000 -r 50 --master
-locust -f step4/benchmark.py --worker --master-bind-host=0.0.0.0 --master-bind-port 8089
-```
-
 Ressource: <https://calmcode.io/locust/introduction.html>
 
 ---
@@ -563,8 +558,8 @@ On the server, create this supervisor config file and save it as
 
 ```ini
 [program:webservice]
-command=/home/ubuntu/tut-productive-ml/bin/gunicorn -k uvicorn.workers.UvicornWorker deploy_iris.wsgi:app -b 0.0.0.0:8080
-directory=/home/ubuntu/tut-productive-ml/step3/
+command=/home/ubuntu/tut-productive-ml/bin/gunicorn -k uvicorn.workers.UvicornWorker deploy_iris:app -b 0.0.0.0:8080
+directory=/home/ubuntu/tut-productive-ml/
 user=ubuntu
 ```
 
